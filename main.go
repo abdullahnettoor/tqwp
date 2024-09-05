@@ -4,14 +4,16 @@ import (
 	"fmt"
 	"math/rand"
 	"sync"
+	"time"
 )
 
 var CusLogger *customLogger
 
 func main() {
+	start := time.Now()
 
 	numOfWorkers := 3
-	numTasks := 15
+	numTasks := 10000
 	maxRetries := 3
 
 	var wg, taskWg sync.WaitGroup
@@ -36,7 +38,12 @@ func main() {
 	wp.Stop()
 	wg.Wait()
 
-	fmt.Println("-----------------------------------------------------------------")
-	msg := fmt.Sprintf("Processed %d Tasks | %d Success | %d Failed |", numTasks, wp.TaskSuccess, wp.TaskFailure)
-	CusLogger.CustomeTag("SUMMARY ", msg)
+	fmt.Println("-------------------------------------------------------------------------------")
+	msg := fmt.Sprintf("\n- Processed %d Tasks \n- %d Success \n- %d Failed \n- Process took %v",
+		numTasks,
+		wp.TaskSuccess,
+		wp.TaskFailure,
+		time.Since(start),
+	)
+	CusLogger.CustomeTag("[SUMMARY]", msg)
 }
