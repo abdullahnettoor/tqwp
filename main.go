@@ -2,33 +2,41 @@ package main
 
 import (
 	"fmt"
-	"log"
 	"math/rand"
 	"sync"
 )
 
+var CusLogger *customLogger
+
 func main() {
 
 	numOfWorkers := 3
-	numTasks := 5
+	numTasks := 15
 	maxRetries := 3
 
-	tasks := make([]Task, numTasks)
-	for i := 0; i < numTasks; i++ {
-		tasks[i] = Task{
-			Id:         uint(i + 1),
-			Data:       rand.Intn(1000),
-			Retries:    0,
-			MaxRetries: maxRetries,
-		}
-	}
+	var wg, taskWg sync.WaitGroup
 
-	var wg sync.WaitGroup
-	wp := NewWorkerPool(numOfWorkers, &wg, tasks)
+	CusLogger = NewCustomLogger()
+
+	taskQ := NewTaskQueue(numTasks)
+	for i := 1; i <= numTasks; i++ {
+		t := Task{
+			Id:      uint(i),
+			Data:    rand.Intn(1000),
+			Retries: 0,
+		}
+		taskQ.Enqueue(t)
+		taskWg.Add(1)
+	}
+	wp := NewWorkerPool(taskQ, numOfWorkers, &wg, &taskWg, maxRetries)
+
 	wp.Start()
 
+	taskWg.Wait()
+	wp.Stop()
 	wg.Wait()
 
-	fmt.Println("-----------------------------")
-	log.Printf("Processed %d Tasks\n", numTasks)
+	fmt.Println("-----------------------------------------------------------------")
+	msg := fmt.Sprintf("Processed %d Tasks | %d Success | %d Failed |", numTasks, wp.TaskSuccess, wp.TaskFailure)
+	CusLogger.CustomeTag("SUMMARY ", msg)
 }
