@@ -40,28 +40,25 @@ func (wp *WorkerPool) worker(id int) {
 	defer wp.wg.Done()
 
 	for task := range wp.queue.Tasks {
-		for attempt := 0; attempt <= wp.maxRetries; attempt++ {
-			err := task.Process()
-			if err != nil {
-				msg := fmt.Sprintf("Worker %d failed task %d: %v (attempt %d)", id, task.Id, err, attempt+1)
+		err := task.Process()
+		if err != nil {
+			msg := fmt.Sprintf("Worker %d failed task %d: %v (attempt %d)", id, task.Id, err, task.Retries+1)
+			CusLogger.Warn(msg)
+			if task.Retries < wp.maxRetries {
+				task.Retries++
+				msg = fmt.Sprintf("Worker %d retrying task %d (retry %d)", id, task.Id, task.Retries)
 				CusLogger.Warn(msg)
-				if attempt < wp.maxRetries {
-					task.Retries = attempt + 1
-					msg = fmt.Sprintf("Worker %d retrying task %d (retry %d)", id, task.Id, task.Retries)
-					CusLogger.Warn(msg)
-					continue
-				} else {
-					msg = fmt.Sprintf("Worker %d gave up on task %d after %d retries", id, task.Id, wp.maxRetries)
-					CusLogger.Error(msg)
-					wp.TaskFailure++
-					break
-				}
+				wp.taskWg.Add(1)
+				wp.queue.Enqueue(task)
 			} else {
-				msg := fmt.Sprintf("Worker %d successfully processed task %d", id, task.Id)
-				CusLogger.Success(msg)
-				wp.TaskSuccess++
-				break
+				msg = fmt.Sprintf("Worker %d gave up on task %d after %d retries", id, task.Id, wp.maxRetries)
+				CusLogger.Error(msg)
+				wp.TaskFailure++
 			}
+		} else {
+			msg := fmt.Sprintf("Worker %d successfully processed task %d", id, task.Id)
+			CusLogger.Success(msg)
+			wp.TaskSuccess++
 		}
 		wp.taskWg.Done()
 	}
