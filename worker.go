@@ -6,47 +6,63 @@ import (
 )
 
 type WorkerPool struct {
-	workers int
-	tasks   []Task
-	wg      *sync.WaitGroup
+	workers     int
+	queue       *TaskQueue
+	wg          *sync.WaitGroup
+	taskWg      *sync.WaitGroup
+	maxRetries  int
+	TaskSuccess int
+	TaskFailure int
 }
 
-func NewWorkerPool(workers int, wg *sync.WaitGroup, tasks []Task) *WorkerPool {
+func NewWorkerPool(taskQ *TaskQueue, workers int, wg, taskWg *sync.WaitGroup, maxRetries int) *WorkerPool {
 	return &WorkerPool{
-		workers: workers,
-		tasks:   tasks,
-		wg:      wg,
+		queue:      taskQ,
+		workers:    workers,
+		wg:         wg,
+		taskWg:     taskWg,
+		maxRetries: maxRetries,
 	}
 }
 
 func (wp *WorkerPool) Start() {
 	for i := 1; i <= wp.workers; i++ {
 		wp.wg.Add(1)
-		go worker(i, wp.tasks, wp.wg)
+		go wp.worker(i)
 	}
-
 }
 
-func worker(id int, tasks []Task, wg *sync.WaitGroup) {
-	defer wg.Done()
+func (wp *WorkerPool) Stop() {
+	close(wp.queue.Tasks)
+}
 
-	for _, task := range tasks {
-		for attempt := 0; attempt <= task.MaxRetries; attempt++ {
+func (wp *WorkerPool) worker(id int) {
+	defer wp.wg.Done()
+
+	for task := range wp.queue.Tasks {
+		for attempt := 0; attempt <= wp.maxRetries; attempt++ {
 			err := task.Process()
 			if err != nil {
-				fmt.Printf("Worker %d failed task %d: %v (attempt %d)\n", id, task.Id, err, attempt+1)
-				if attempt < task.MaxRetries {
+				msg := fmt.Sprintf("Worker %d failed task %d: %v (attempt %d)", id, task.Id, err, attempt+1)
+				CusLogger.Warn(msg)
+				if attempt < wp.maxRetries {
 					task.Retries = attempt + 1
-					fmt.Printf("Worker %d retrying task %d (retry %d)\n", id, task.Id, task.Retries)
+					msg = fmt.Sprintf("Worker %d retrying task %d (retry %d)", id, task.Id, task.Retries)
+					CusLogger.Warn(msg)
 					continue
 				} else {
-					fmt.Printf("Worker %d gave up on task %d after %d retries\n", id, task.Id, task.MaxRetries)
+					msg = fmt.Sprintf("Worker %d gave up on task %d after %d retries", id, task.Id, wp.maxRetries)
+					CusLogger.Error(msg)
+					wp.TaskFailure++
 					break
 				}
 			} else {
-				fmt.Printf("Worker %d successfully processed task %d\n", id, task.Id)
+				msg := fmt.Sprintf("Worker %d successfully processed task %d", id, task.Id)
+				CusLogger.Success(msg)
+				wp.TaskSuccess++
 				break
 			}
 		}
+		wp.taskWg.Done()
 	}
 }
