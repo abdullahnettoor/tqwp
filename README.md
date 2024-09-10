@@ -15,16 +15,17 @@ A Golang-based concurrent task processing system with a task queue and worker po
 ```plaintext
 ├── LICENSE
 ├── README.md
+├── cmd
+│   └── main.go
 ├── customlog.go
 ├── go.mod
-├── main.go
 ├── task.go
 ├── task.md
 ├── taskqueue.go
 └── worker.go
 ```
 
-- **main.go**: The entry point of the application that initializes the task queue, worker pool, and processes tasks.
+- **cmd/main.go**: The entry point of the application that initializes the task queue, worker pool, and processes tasks.
 - **task.go**: Defines the `Task` struct and its `Process` method for simulating task execution.
 - **taskqueue.go**: Defines the `TaskQueue` struct and its `Enqueue` method for adding tasks to the queue.
 - **worker.go**: Defines the `WorkerPool` struct and manages task processing by workers.
