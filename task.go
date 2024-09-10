@@ -1,4 +1,4 @@
-package main
+package tqwp
 
 import (
 	"fmt"
@@ -7,9 +7,9 @@ import (
 )
 
 type Task struct {
-	Id         uint
-	Data       any
-	Retries    int
+	Id      uint
+	Data    any
+	Retries int
 }
 
 func (t *Task) Process() error {

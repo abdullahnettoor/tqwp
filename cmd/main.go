@@ -5,11 +5,12 @@ import (
 	"math/rand"
 	"sync"
 	"time"
+
+	"github.com/abdullahnettoor/tqwp"
 )
 
-var CusLogger *customLogger
-
 func main() {
+	var CusLogger *tqwp.CustomLogger
 	start := time.Now()
 
 	numOfWorkers := 3
@@ -18,11 +19,11 @@ func main() {
 
 	var wg, taskWg sync.WaitGroup
 
-	CusLogger = NewCustomLogger()
+	CusLogger = tqwp.NewCustomLogger()
 
-	taskQ := NewTaskQueue(numTasks)
+	taskQ := tqwp.NewTaskQueue(numTasks)
 	for i := 1; i <= numTasks; i++ {
-		t := Task{
+		t := tqwp.Task{
 			Id:      uint(i),
 			Data:    rand.Intn(1000),
 			Retries: 0,
@@ -30,7 +31,7 @@ func main() {
 		taskQ.Enqueue(t)
 		taskWg.Add(1)
 	}
-	wp := NewWorkerPool(taskQ, numOfWorkers, &wg, &taskWg, maxRetries)
+	wp := tqwp.NewWorkerPool(taskQ, numOfWorkers, &wg, &taskWg, maxRetries)
 
 	wp.Start()
 
