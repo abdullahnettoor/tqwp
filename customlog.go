@@ -5,8 +5,6 @@ import (
 	"time"
 )
 
-var CusLogger *CustomLogger
-
 type CustomLogger struct {
 	level string
 }

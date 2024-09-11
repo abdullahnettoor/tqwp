@@ -10,7 +10,6 @@ import (
 )
 
 func main() {
-	var CusLogger *tqwp.CustomLogger
 	start := time.Now()
 
 	numOfWorkers := 3
@@ -19,7 +18,7 @@ func main() {
 
 	var wg, taskWg sync.WaitGroup
 
-	CusLogger = tqwp.NewCustomLogger()
+	CusLogger := tqwp.NewCustomLogger()
 
 	taskQ := tqwp.NewTaskQueue(numTasks)
 	for i := 1; i <= numTasks; i++ {
@@ -46,5 +45,5 @@ func main() {
 		wp.TaskFailure,
 		time.Since(start),
 	)
-	CusLogger.CustomeTag("[SUMMARY]", msg)
+	CusLogger.CustomeTag("[SUMMARY] ", msg)
 }

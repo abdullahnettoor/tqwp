@@ -16,6 +16,7 @@ type WorkerPool struct {
 }
 
 func NewWorkerPool(taskQ *TaskQueue, workers int, wg, taskWg *sync.WaitGroup, maxRetries int) *WorkerPool {
+
 	return &WorkerPool{
 		queue:      taskQ,
 		workers:    workers,
@@ -37,6 +38,8 @@ func (wp *WorkerPool) Stop() {
 }
 
 func (wp *WorkerPool) worker(id int) {
+	CusLogger := NewCustomLogger()
+
 	defer wp.wg.Done()
 
 	for task := range wp.queue.Tasks {
