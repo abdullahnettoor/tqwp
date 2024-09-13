@@ -2,17 +2,22 @@ package tqwp
 
 import (
 	"fmt"
+	"time"
 
 	"math/rand"
 )
 
-type Task struct {
+type Task interface {
+	Process() error
+}
+
+type CustomTask struct {
 	Id      uint
 	Data    any
 	Retries int
 }
 
-func (t *Task) Process() error {
+func (t *CustomTask) Process() error {
 	num, isInt := t.Data.(int)
 	if !isInt {
 		return fmt.Errorf("invalid type")
@@ -22,5 +27,6 @@ func (t *Task) Process() error {
 		return fmt.Errorf("division by zero")
 	}
 	t.Data = num / divisor
+	time.Sleep(time.Millisecond * 10)
 	return nil
 }
