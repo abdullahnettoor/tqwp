@@ -7,7 +7,11 @@ import (
 	"math/rand"
 )
 
+// Task is an interface which will be passed
+// through the channel in Taskqueue
 type Task interface {
+	// Process function will be called in workers to process the task.
+	// This functions must be implemented when creating custom tasks.
 	Process() error
 }
 
