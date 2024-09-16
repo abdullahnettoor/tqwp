@@ -15,9 +15,9 @@ func main() {
 	taskQ := tqwp.NewTaskQueue(numTasks)
 	for i := 1; i <= numTasks; i++ {
 		t := tqwp.CustomTask{
-			Id:      uint(i),
-			Data:    rand.Intn(1000),
-			Retries: 0,
+			Id:        uint(i),
+			Data:      rand.Intn(1000),
+			TaskModel: tqwp.TaskModel{},
 		}
 		taskQ.Enqueue(&t)
 	}

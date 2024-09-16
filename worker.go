@@ -19,9 +19,12 @@ type WorkerPool struct {
 	CompletedIn  time.Duration
 }
 
+var Logger *customLogger
+
 func NewWorkerPool(taskQ *TaskQueue, numOfTasks, numOfWorkers int, maxRetries int) *WorkerPool {
 	var wg, taskWg sync.WaitGroup
 	taskWg.Add(len(taskQ.Tasks))
+	Logger = NewCustomLogger()
 	return &WorkerPool{
 		queue:        taskQ,
 		numOfTasks:   numOfTasks,
@@ -49,49 +52,63 @@ func (wp *WorkerPool) Stop() {
 }
 
 func (wp *WorkerPool) Summary() {
-	Log := NewCustomLogger()
 
 	fmt.Println("-------------------------------------------------------------------------------")
 	msg := fmt.Sprintf("\n- Processed %d Tasks \n- Worker Count %d\n- %d Success \n- %d Failed \n- Completed in %v",
 		wp.numOfTasks,
 		wp.numOfWorkers,
-		wp.TaskSuccess,
+		wp.numOfTasks-wp.TaskFailure,
 		wp.TaskFailure,
 		wp.CompletedIn,
 	)
-	Log.CustomTag("[SUMMARY] ", msg)
+	Logger.CustomTag("[SUMMARY] ", msg)
 }
 
 func (wp *WorkerPool) worker(id int) {
-	Log := NewCustomLogger()
 
 	defer wp.wg.Done()
 
 	for task := range wp.queue.Tasks {
-		attempt := 0
-		for attempt < wp.maxRetries {
-			err := task.Process()
 
-			if err == nil {
-				msg := fmt.Sprintf("Worker %d successfully processed task %d", id, task)
-				Log.Success(msg)
-				wp.TaskSuccess++
-				break
-			}
-
-			msg := fmt.Sprintf("Worker %d failed task %d: %v (attempt %d)", id, task, err, attempt+1)
-			Log.Warn(msg)
-			if attempt < wp.maxRetries {
-				msg = fmt.Sprintf("Worker %d retrying task %d (retry %d)", id, task, attempt)
-				attempt++
-				Log.Warn(msg)
-				if attempt == wp.maxRetries {
-					wp.TaskFailure++
-					msg = fmt.Sprintf("Worker %d gave up on task %d after %d retries", id, task, wp.maxRetries)
-					Log.Error(msg)
-				}
-			}
-		}
-		wp.taskWg.Done()
+		go wp.handleTask(id, task)
 	}
+}
+
+func (wp *WorkerPool) handleTask(id int, task Task) {
+	defer wp.taskWg.Done()
+
+	for {
+		err := task.Process()
+		if err == nil {
+			msg := fmt.Sprintf(
+				"Worker %d successfully processed task %d",
+				id,
+				task)
+			Logger.Success(msg)
+			return
+		}
+
+		if tm, ok := task.(RetryableTask); ok && tm.Retry(wp.maxRetries) {
+			wp.queue.Enqueue(task)
+			wp.taskWg.Add(1)
+			msg := fmt.Sprintf(
+				"Worker %d failed on task %d: %s (attempt %d)",
+				id,
+				task,
+				err.Error(),
+				tm.GetRetry()+1)
+			Logger.Warn(msg)
+			return
+		}
+
+		wp.TaskFailure++
+		msg := fmt.Sprintf(
+			"Worker %d gave up on task %d after %d retries",
+			id,
+			task,
+			wp.maxRetries)
+		Logger.Error(msg)
+
+	}
+
 }
