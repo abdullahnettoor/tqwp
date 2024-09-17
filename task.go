@@ -1,12 +1,5 @@
 package tqwp
 
-import (
-	"fmt"
-	"time"
-
-	"math/rand"
-)
-
 // Task is an interface which will be passed
 // through the channel in Taskqueue
 type Task interface {
@@ -35,24 +28,4 @@ func (tm *TaskModel) Retry(maxRetries int) bool {
 
 func (tm *TaskModel) GetRetry() int {
 	return tm.retries
-}
-
-type CustomTask struct {
-	TaskModel
-	Id   uint
-	Data any
-}
-
-func (t *CustomTask) Process() error {
-	num, isInt := t.Data.(int)
-	if !isInt {
-		return fmt.Errorf("invalid type")
-	}
-	divisor := rand.Intn(2)
-	if divisor == 0 {
-		return fmt.Errorf("division by zero")
-	}
-	t.Data = num / divisor
-	time.Sleep(time.Millisecond * 10)
-	return nil
 }
