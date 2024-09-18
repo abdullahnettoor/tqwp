@@ -3,6 +3,7 @@ package tqwp
 import (
 	"fmt"
 	"sync"
+	"sync/atomic"
 	"time"
 )
 
@@ -13,8 +14,8 @@ type WorkerPool struct {
 	wg           *sync.WaitGroup
 	taskWg       *sync.WaitGroup
 	maxRetries   int
-	TaskSuccess  int
-	TaskFailure  int
+	TaskSuccess  int32
+	TaskFailure  int32
 	startTime    time.Time
 	CompletedIn  time.Duration
 }
@@ -57,7 +58,7 @@ func (wp *WorkerPool) Summary() {
 	msg := fmt.Sprintf("\n- Processed %d Tasks \n- Worker Count %d\n- %d Success \n- %d Failed \n- Completed in %v",
 		wp.numOfTasks,
 		wp.numOfWorkers,
-		wp.numOfTasks-wp.TaskFailure,
+		wp.TaskSuccess,
 		wp.TaskFailure,
 		wp.CompletedIn,
 	)
@@ -80,6 +81,7 @@ func (wp *WorkerPool) handleTask(id int, task Task) {
 	for {
 		err := task.Process()
 		if err == nil {
+			atomic.AddInt32(&wp.TaskSuccess, 1)
 			msg := fmt.Sprintf(
 				"Worker %d successfully processed task %d",
 				id,
@@ -88,25 +90,36 @@ func (wp *WorkerPool) handleTask(id int, task Task) {
 			return
 		}
 
-		if tm, ok := task.(RetryableTask); ok && tm.Retry(wp.maxRetries) {
-			wp.queue.Enqueue(task)
-			wp.taskWg.Add(1)
+		if tm, ok := task.(RetryableTask); ok {
+
+			if tm.Retry(wp.maxRetries) {
+				wp.queue.Enqueue(task)
+				wp.taskWg.Add(1)
+				msg := fmt.Sprintf(
+					"Worker %d failed on task %d: %s (attempt %d)",
+					id,
+					task,
+					err.Error(),
+					tm.GetRetry()+1)
+				Logger.Warn(msg)
+				return
+			}
+
+			atomic.AddInt32(&wp.TaskFailure, 1)
 			msg := fmt.Sprintf(
-				"Worker %d failed on task %d: %s (attempt %d)",
+				"Worker %d gave up on task %d after %d retries",
 				id,
 				task,
-				err.Error(),
-				tm.GetRetry()+1)
-			Logger.Warn(msg)
+				wp.maxRetries)
+			Logger.Error(msg)
 			return
 		}
 
-		wp.TaskFailure++
+		atomic.AddInt32(&wp.TaskFailure, 1)
 		msg := fmt.Sprintf(
-			"Worker %d gave up on task %d after %d retries",
+			"------------ Worker %d Failed to parse task: %v",
 			id,
-			task,
-			wp.maxRetries)
+			task)
 		Logger.Error(msg)
 
 	}
