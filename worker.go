@@ -20,12 +20,12 @@ type WorkerPool struct {
 	CompletedIn  time.Duration
 }
 
-var Logger *customLogger
+var logger *customLogger
 
 func NewWorkerPool(taskQ *TaskQueue, numOfTasks, numOfWorkers int, maxRetries int) *WorkerPool {
 	var wg, taskWg sync.WaitGroup
 	taskWg.Add(len(taskQ.Tasks))
-	Logger = NewCustomLogger()
+	logger = newCustomLogger()
 	return &WorkerPool{
 		queue:        taskQ,
 		numOfTasks:   numOfTasks,
@@ -62,7 +62,7 @@ func (wp *WorkerPool) Summary() {
 		wp.TaskFailure,
 		wp.CompletedIn,
 	)
-	Logger.CustomTag("[SUMMARY] ", msg)
+	logger.CustomTag("[SUMMARY] ", msg)
 }
 
 func (wp *WorkerPool) worker(id int) {
@@ -86,7 +86,7 @@ func (wp *WorkerPool) handleTask(id int, task Task) {
 				"Worker %d successfully processed task %d",
 				id,
 				task)
-			Logger.Success(msg)
+			logger.Success(msg)
 			return
 		}
 
@@ -101,7 +101,7 @@ func (wp *WorkerPool) handleTask(id int, task Task) {
 					task,
 					err.Error(),
 					tm.GetRetry()+1)
-				Logger.Warn(msg)
+				logger.Warn(msg)
 				return
 			}
 
@@ -111,7 +111,7 @@ func (wp *WorkerPool) handleTask(id int, task Task) {
 				id,
 				task,
 				wp.maxRetries)
-			Logger.Error(msg)
+			logger.Error(msg)
 			return
 		}
 
@@ -120,7 +120,7 @@ func (wp *WorkerPool) handleTask(id int, task Task) {
 			"------------ Worker %d Failed to parse task: %v",
 			id,
 			task)
-		Logger.Error(msg)
+		logger.Error(msg)
 
 	}
 

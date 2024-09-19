@@ -9,7 +9,7 @@ type customLogger struct {
 	level string
 }
 
-func NewCustomLogger() *customLogger {
+func newCustomLogger() *customLogger {
 	return &customLogger{}
 }
 
