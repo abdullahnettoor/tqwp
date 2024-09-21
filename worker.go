@@ -90,9 +90,9 @@ func (wp *WorkerPool) handleTask(id int, task Task) {
 			return
 		}
 
-		if tm, ok := task.(RetryableTask); ok {
+		if tm, ok := task.(retryableTask); ok {
 
-			if tm.Retry(wp.maxRetries) {
+			if tm.retry(wp.maxRetries) {
 				wp.queue.Enqueue(task)
 				wp.taskWg.Add(1)
 				msg := fmt.Sprintf(
@@ -100,7 +100,7 @@ func (wp *WorkerPool) handleTask(id int, task Task) {
 					id,
 					task,
 					err.Error(),
-					tm.GetRetry()+1)
+					tm.getRetry()+1)
 				logger.Warn(msg)
 				return
 			}
