@@ -1,111 +1,160 @@
-# Task Queue Worker Pool 
+# Task Queue Worker Pool (tqwp)
 
-A Golang-based concurrent task processing system with a task queue and worker pool. The system allows for processing tasks with automatic retries on failure, and custom logging is used to track the progress, successes, and failures of tasks.
+`tqwp` is a Golang package designed to help you manage task processing with a worker pool. It provides an easy-to-use API for enqueuing tasks, processing them concurrently with workers, and retrying failed tasks with configurable retry logic.
 
 ## Features
 
-- **Task Queue**: A buffered channel that holds tasks to be processed.
-- **Worker Pool**: A pool of workers that processes tasks concurrently.
-- **Task Retry Mechanism**: Automatically retries failed tasks based on a configurable limit.
-- **Custom Logging**: Logs task progress and system status with different log levels (Info, Warning, Error, Success).
-- **Error Handling**: Tasks can fail (e.g., division by zero), and the system retries until the maximum retry limit is reached.
-
-## Project Structure
-
-```plaintext
-├── LICENSE
-├── README.md
-├── cmd
-│   └── main.go
-├── customlog.go
-├── go.mod
-├── task.go
-├── task.md
-├── taskqueue.go
-└── worker.go
-```
-
-- **cmd/main.go**: The entry point of the application that initializes the task queue, worker pool, and processes tasks.
-- **task.go**: Defines the `Task` struct and its `Process` method for simulating task execution.
-- **taskqueue.go**: Defines the `TaskQueue` struct and its `Enqueue` method for adding tasks to the queue.
-- **worker.go**: Defines the `WorkerPool` struct and manages task processing by workers.
-- **customlog.go**: Implements a custom logging system with different log levels.
-
-## How It Works
-
-The application simulates processing tasks in a worker pool. Each task is an integer division operation that may fail (e.g., division by zero). Failed tasks are retried a limited number of times, and all processing results (successes, failures, retries) are logged.
-
-1. **Task Creation**: The main application generates a fixed number of tasks and adds them to the task queue.
-2. **Worker Pool**: The worker pool starts with a predefined number of workers that dequeue tasks and process them concurrently.
-3. **Task Processing**: Each task is processed using the `Process` method, which simulates a division operation. If an error occurs, the worker retries the task until it either succeeds or reaches the maximum number of retries.
-4. **Logging**: Task status (success, failure, retries) is logged using the custom logging system.
+- Create custom tasks by implementing the `Task` interface.
+- Set up worker pools to process tasks concurrently.
+- Configurable retry mechanism for failed tasks.
+- Simple logging of task processing, retries, and failures.
 
 ## Installation
 
-1. Clone the repository:
+To install the `tqwp` package, use:
 
-    ```bash
-    git clone https://github.com/abdullahnettoor/tqwp.git
-    cd taskQworkerpool
-    ```
-
-2. Install dependencies:
-
-    The project uses Go modules, so dependencies are handled automatically. Ensure you have Go installed:
-
-    ```bash
-    go mod tidy
-    ```
-
-3. Run the project:
-
-    ```bash
-    go run main.go
-    ```
-
-## Configuration
-
-- **Number of Workers**: Defined in the `main.go` file (default is 3 workers).
-- **Number of Tasks**: Also defined in `main.go` (default is 10,000 tasks).
-- **Maximum Retries**: The maximum number of retries for each task is set to 3 in the `main.go` file. This can be adjusted based on your requirements.
-
-## Example Output
-
-The output logs will contain messages for each task's progress:
-
-```plaintext
-[INFO]: 2024/09/12 12:00:00 Worker 1 successfully processed task 1
-[WARN]: 2024/09/12 12:00:01 Worker 2 failed task 2: division by zero (attempt 1)
-[WARN]: 2024/09/12 12:00:01 Worker 2 retrying task 2 (retry 2)
-[ERROR]: 2024/09/12 12:00:02 Worker 2 gave up on task 2 after 3 retries
-```
-
-At the end, a summary is logged:
-
-```plaintext
-[SUMMARY]: 2024/09/12 13:45:51 
-- Processed 10000 Tasks 
-- 9355 Success 
-- 645 Failed 
-- Process took 348.657875ms
+```bash
+go get github.com/abdullahnettoor/tqwp
 ```
 
 ## Usage
 
-To customize the worker pool or task behavior, modify the following parameters in `main.go`:
+### 1. Define a Custom Task
 
-- `numOfWorkers`: Number of workers in the pool.
-- `numTasks`: Total number of tasks to be processed.
-- `maxRetries`: Maximum number of retries allowed for each task.
+To create a custom task, implement the `Task` interface and embed `TaskModel` for retry management.
 
-You can also adjust the task processing logic in the `Process` method within `task.go`.
+```go
+package main
+
+import (
+	"fmt"
+	"math/rand"
+	"time"
+
+	"github.com/abdullahnettoor/tqwp"
+)
+
+type CustomTask struct {
+	tqwp.TaskModel
+	Id   uint
+	Data int
+}
+
+// Implement the Process method to define task behavior.
+func (t *CustomTask) Process() error {
+	num, isInt := t.Data
+
+	divisor := rand.Intn(2) // Simulating error by making divisor 0
+	if divisor == 0 {
+		return fmt.Errorf("division by zero") 
+	}
+	t.Data = num / divisor
+	time.Sleep(time.Millisecond * 10) // Simulate processing time
+	return nil
+}
+```
+
+### 2. Use the Worker Pool in the Main Function
+
+In your main function, set up the worker pool, enqueue tasks, and start processing.
+
+```go
+package main
+
+import (
+	"math/rand"
+
+	"github.com/abdullahnettoor/tqwp"
+)
+
+func main() {
+
+	// Define the number of workers, tasks, and maximum retries.
+	numOfWorkers := 100
+	numTasks := 1000
+	maxRetries := 3
+
+	// Create a TaskQueue with capacity for numTasks.
+	taskQ := tqwp.NewTaskQueue(numTasks)
+	for i := 1; i <= numTasks; i++ {
+		t := CustomTask{
+			Id:        uint(i),
+			Data:      rand.Intn(1000),
+			TaskModel: tqwp.TaskModel{},
+		}
+		taskQ.Enqueue(&t)
+	}
+
+	// Set up the worker pool and start processing tasks.
+	wp := tqwp.NewWorkerPool(taskQ, numTasks, numOfWorkers, maxRetries)
+	defer wp.Summary()
+	defer wp.Stop()
+
+	wp.Start()
+}
+```
+
+### 3. Run the Example
+
+Compile and run your application:
+
+```bash
+go run main.go
+```
+
+This will create a worker pool with 100 workers to process 1000 tasks concurrently. Failed tasks will be retried up to 3 times. A summary of the processing will be printed at the end.
+
+## API Overview
+
+### Task Interface
+
+The `Task` interface defines the behavior for each task:
+
+```go
+type Task interface {
+	Process() error
+}
+```
+
+### Retryable Task
+
+Tasks that embed `TaskModel` automatically gain retry capabilities.
+
+### Worker Pool
+
+The `WorkerPool` manages task processing across multiple workers:
+
+- `NewWorkerPool(taskQ *TaskQueue, numOfTasks int, numOfWorkers int, maxRetries int)`: Creates a new worker pool.
+- `Start()`: Starts the worker pool, distributing tasks to workers.
+- `Stop()`: Stops the worker pool and waits for all tasks to be processed.
+- `Summary()`: Prints a summary of the processing.
+
+### Task Queue
+
+The `TaskQueue` handles enqueuing tasks and distributing them to workers:
+
+- `NewTaskQueue(size int)`: Creates a new task queue with a specific size.
+- `Enqueue(task Task)`: Adds a task to the queue.
+
+## License
+
+This project is licensed under the Apache License 2.0. See the [LICENSE](LICENSE) file for details.
+
+---
+
+Let me know if you need further adjustments!
 
 ## License
 
 This project is licensed under the Apache License 2.0 - see the [LICENSE](LICENSE) file for details.
 
-<!-- 
+## TODO
+- Implement Custom error message for each task
+- Coupling the configuration of worker pool in to a struct 
+- Implement default configuration for worker pool
+
+
 ## Contributors
 
 - [Abdullah Nettoor](https://github.com/abdullahNettoor)
- -->
+
