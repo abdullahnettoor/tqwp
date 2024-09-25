@@ -136,17 +136,15 @@ The `TaskQueue` handles enqueuing tasks and distributing them to workers:
 - `NewTaskQueue(size int)`: Creates a new task queue with a specific size.
 - `Enqueue(task Task)`: Adds a task to the queue.
 
-## License
-
-This project is licensed under the Apache License 2.0. See the [LICENSE](LICENSE) file for details.
-
----
-
-Let me know if you need further adjustments!
 
 ## License
 
 This project is licensed under the Apache License 2.0 - see the [LICENSE](LICENSE) file for details.
+
+---
+<br/>
+<br/>
+<br/>
 
 ## TODO
 - Implement Custom error message for each task
@@ -155,6 +153,6 @@ This project is licensed under the Apache License 2.0 - see the [LICENSE](LICENS
 
 
 ## Contributors
-
-- [Abdullah Nettoor](https://github.com/abdullahNettoor)
-
+<a href="https://github.com/abdullahnettoor">
+    <img src="https://github.com/abdullahnettoor.png" style="border-radius: 50%; alt="Abdullah Nettoor" width="60" height="60"/>
+</a>
