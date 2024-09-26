@@ -82,11 +82,12 @@ func (wp *WorkerPool) handleTask(id int, task Task) {
 		err := task.Process()
 		if err == nil {
 			atomic.AddInt32(&wp.TaskSuccess, 1)
-			msg := fmt.Sprintf(
-				"Worker %d successfully processed task %d",
-				id,
-				task)
-			logger.Success(msg)
+			// msg := fmt.Sprintf(
+			// 	"Worker %d successfully processed task %d",
+			// 	id,
+			// 	task,
+			// )
+			// logger.Success(msg)
 			return
 		}
 
@@ -96,32 +97,32 @@ func (wp *WorkerPool) handleTask(id int, task Task) {
 				wp.queue.Enqueue(task)
 				wp.taskWg.Add(1)
 				msg := fmt.Sprintf(
-					"Worker %d failed on task %d: %s (attempt %d)",
+					"Worker %d failed: %s (attempt %d)",
 					id,
-					task,
 					err.Error(),
-					tm.getRetry()+1)
+					tm.getRetry(),
+				)
 				logger.Warn(msg)
 				return
 			}
 
 			atomic.AddInt32(&wp.TaskFailure, 1)
 			msg := fmt.Sprintf(
-				"Worker %d gave up on task %d after %d retries",
+				"Worker %d gave up after %d retries: %s",
 				id,
-				task,
-				wp.maxRetries)
+				wp.maxRetries,
+				err.Error(),
+			)
 			logger.Error(msg)
 			return
 		}
 
 		atomic.AddInt32(&wp.TaskFailure, 1)
 		msg := fmt.Sprintf(
-			"------------ Worker %d Failed to parse task: %v",
+			"Worker %d Failed to parse task: %v",
 			id,
-			task)
+			task,
+		)
 		logger.Error(msg)
-
 	}
-
 }
