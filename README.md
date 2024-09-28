@@ -1,5 +1,14 @@
 # Task Queue Worker Pool (tqwp)
 
+```
+████████╗ ██████╗ ██╗    ██╗██████╗ 
+╚══██╔══╝██╔═══██╗██║    ██║██╔══██╗
+   ██║   ██║   ██║██║ █╗ ██║██████╔╝
+   ██║   ██║▄▄ ██║██║███╗██║██╔═══╝ 
+   ██║   ╚██████╔╝╚███╔███╔╝██║     
+   ╚═╝    ╚══▀▀═╝  ╚══╝╚══╝ ╚═╝        
+```             
+
 `tqwp` is a Golang package designed to help you manage task processing with a worker pool. It provides an easy-to-use API for enqueuing tasks, processing them concurrently with workers, and retrying failed tasks with configurable retry logic.
 
 ## Features
