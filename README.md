@@ -125,10 +125,6 @@ type Task interface {
 }
 ```
 
-### Retryable Task
-
-Tasks that embed `TaskModel` automatically gain retry capabilities.
-
 ### Worker Pool
 
 The `WorkerPool` manages task processing across multiple workers:
