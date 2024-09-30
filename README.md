@@ -78,28 +78,42 @@ import (
 
 func main() {
 
-	// Define the number of workers, tasks, and maximum retries.
-	numOfWorkers := 100
-	numTasks := 1000
-	maxRetries := 3
+	// Define the config with number of workers and maximum retries.
+	cfg := tqwp.WorkerPoolConfig{
+		MaxRetries:   3,
+		NumOfWorkers: 10,
+	}
 
-	// Create a TaskQueue with capacity for numTasks.
-	taskQ := tqwp.NewTaskQueue(numTasks)
-	for i := 1; i <= numTasks; i++ {
+	// Set up the worker pool and start processing tasks.
+    wp := tqwp.New(&cfg)
+	defer wp.Summary()
+	defer wp.Stop()
+
+	// Add Tasks to Queue before starting. 
+    // Not Recommended.
+	wp.EnqueueTask(&CustomTask{
+        Id:        uint(111111),
+		Data:      rand.Intn(1000),
+		TaskModel: tqwp.TaskModel{},
+	})
+
+	wp.EnqueueTask(&CustomTask{
+        Id:        uint(123124),
+		Data:      rand.Intn(1000),
+		TaskModel: tqwp.TaskModel{},
+	})
+
+	wp.Start()
+
+    // Add Tasks to Queue.
+	for i := 1; i <= 1000; i++ {
 		t := CustomTask{
 			Id:        uint(i),
 			Data:      rand.Intn(1000),
 			TaskModel: tqwp.TaskModel{},
 		}
-		taskQ.Enqueue(&t)
+		wp.EnqueueTask(&t)
 	}
-
-	// Set up the worker pool and start processing tasks.
-	wp := tqwp.NewWorkerPool(taskQ, numTasks, numOfWorkers, maxRetries)
-	defer wp.Summary()
-	defer wp.Stop()
-
-	wp.Start()
 }
 ```
 
@@ -129,17 +143,18 @@ type Task interface {
 
 The `WorkerPool` manages task processing across multiple workers:
 
-- `NewWorkerPool(taskQ *TaskQueue, numOfTasks int, numOfWorkers int, maxRetries int)`: Creates a new worker pool.
+```go
+type WorkerPoolConfig struct {
+	NumOfWorkers int
+	MaxRetries   int
+}
+```
+
+- `New(cfg *WorkerPoolConfig)`: Creates a new worker pool with provided configuration.
 - `Start()`: Starts the worker pool, distributing tasks to workers.
+- `EnqueueTask(task Task)`: Adds a task to the queue.
 - `Stop()`: Stops the worker pool and waits for all tasks to be processed.
 - `Summary()`: Prints a summary of the processing.
-
-### Task Queue
-
-The `TaskQueue` handles enqueuing tasks and distributing them to workers:
-
-- `NewTaskQueue(size int)`: Creates a new task queue with a specific size.
-- `Enqueue(task Task)`: Adds a task to the queue.
 
 
 ## License
@@ -149,13 +164,11 @@ This project is licensed under the Apache License 2.0 - see the [LICENSE](LICENS
 ---
 <br/>
 <br/>
-<br/>
 
 ## TODO
-- Implement Custom error message for each task
-- Coupling the configuration of worker pool in to a struct 
 - Implement default configuration for worker pool
-
+- Add interval between retries.
+- Add godocs in necessary files.
 
 ## Contributors
 <a href="https://github.com/abdullahnettoor">
