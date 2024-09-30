@@ -30,10 +30,7 @@ func (t *CustomTask) Process() error {
 
 func main() {
 
-	numOfWorkers := 10
-	maxRetries := 3
-
-	wp := tqwp.New(numOfWorkers, maxRetries)
+	wp := tqwp.New(&tqwp.WorkerPoolConfig{MaxRetries: 3, NumOfWorkers: 10})
 	defer wp.Summary()
 	defer wp.Stop()
 
