@@ -46,7 +46,6 @@ func (t *EmailTask) Process() error {
 }
 
 func main() {
-	numOfWorkers := 5
 	emailList := []string{
 		"john.doe@example.com",
 		"jane.smith@example.com",
@@ -59,10 +58,17 @@ func main() {
 		"katie.moore@example.com",
 		"brian.white@example.com",
 	}
+	numOfWorkers := 5
 	maxRetries := 3
 
-	// Create a TaskQueue with capacity for numEmails.
-	taskQ := tqwp.NewTaskQueue(len(emailList))
+
+	// Create and start the worker pool.
+	wp := tqwp.New(&tqwp.WorkerPoolConfig{
+		NumOfWorkers: numOfWorkers,
+		MaxRetries: maxRetries})
+	defer wp.Summary()
+	defer wp.Stop()
+
 	for i, email := range emailList {
 		t := EmailTask{
 			Id:        uint(i + 1),
@@ -71,13 +77,7 @@ func main() {
 			Body:      "This is a test email.",
 			TaskModel: tqwp.TaskModel{},
 		}
-		taskQ.Enqueue(&t)
+		wp.EnqueueTask(&t)
 	}
-
-	// Create and start the worker pool.
-	wp := tqwp.NewWorkerPool(taskQ, len(emailList), numOfWorkers, maxRetries)
-	defer wp.Summary()
-	defer wp.Stop()
-
 	wp.Start()
 }

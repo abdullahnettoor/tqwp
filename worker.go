@@ -20,33 +20,24 @@ type WorkerPool struct {
 	CompletedIn    time.Duration
 }
 
-var logger *customLogger
-
-func New(numOfWorkers int, maxRetries int) *WorkerPool {
-	var wg, taskWg sync.WaitGroup
-
-	taskQ := NewTaskQueue(numOfWorkers)
-
-	logger = newCustomLogger()
-	return &WorkerPool{
-		queue:        taskQ,
-		numOfWorkers: numOfWorkers,
-		wg:           &wg,
-		taskWg:       &taskWg,
-		maxRetries:   maxRetries,
-	}
+type WorkerPoolConfig struct {
+	NumOfWorkers int
+	MaxRetries   int
 }
 
-func NewWorkerPool(taskQ *TaskQueue, numOfTasks, numOfWorkers int, maxRetries int) *WorkerPool {
+var logger = newCustomLogger()
+
+func New(cfg *WorkerPoolConfig) *WorkerPool {
 	var wg, taskWg sync.WaitGroup
-	taskWg.Add(len(taskQ.Tasks))
-	logger = newCustomLogger()
+
+	taskQ := NewTaskQueue(cfg.NumOfWorkers)
+
 	return &WorkerPool{
 		queue:        taskQ,
-		numOfWorkers: numOfWorkers,
+		numOfWorkers: cfg.NumOfWorkers,
 		wg:           &wg,
 		taskWg:       &taskWg,
-		maxRetries:   maxRetries,
+		maxRetries:   cfg.MaxRetries,
 	}
 }
 
@@ -96,7 +87,6 @@ func (wp *WorkerPool) worker(id int) {
 
 func (wp *WorkerPool) handleTask(id int, task Task) {
 	defer wp.taskWg.Done()
-	fmt.Println("Q Len:", len(wp.queue.Tasks))
 
 	for {
 		err := task.Process()
