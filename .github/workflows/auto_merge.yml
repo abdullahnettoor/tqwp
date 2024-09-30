@@ -17,8 +17,8 @@ jobs:
 
       - name: Set up Git
         run: |
-          git config user.name "abdullahnettoor"
-          git config user.email "abdullahnettoor@gmail.com"
+          git config user.name "github-actions"
+          git config user.email "github-actions@github.com"
 
       - name: Fetch all branches
         run: git fetch --all
@@ -36,8 +36,11 @@ jobs:
             exit 1
           fi
 
-      - name: Push merge to main branch
+      - name: Commit the merge
         if: success()
         run: |
-          git merge --no-ff
-          git push origin main
+          git commit -m "Auto-merge feature branch ${{ github.ref_name }} into main"
+
+      - name: Push merge to main branch
+        if: success()
+        run: git push origin main
