@@ -30,23 +30,33 @@ func (t *CustomTask) Process() error {
 
 func main() {
 
-	numOfWorkers := 100
-	numTasks := 1000
+	numOfWorkers := 10
 	maxRetries := 3
 
-	taskQ := tqwp.NewTaskQueue(numTasks)
-	for i := 1; i <= numTasks; i++ {
+	wp := tqwp.New(numOfWorkers, maxRetries)
+	defer wp.Summary()
+	defer wp.Stop()
+
+	wp.EnqueueTask(&CustomTask{
+		Id:        uint(111111),
+		Data:      rand.Intn(1000),
+		TaskModel: tqwp.TaskModel{},
+	})
+	wp.EnqueueTask(&CustomTask{
+		Id:        uint(123124),
+		Data:      rand.Intn(1000),
+		TaskModel: tqwp.TaskModel{},
+	})
+
+	wp.Start()
+
+	for i := 1; i <= 1000; i++ {
 		t := CustomTask{
 			Id:        uint(i),
 			Data:      rand.Intn(1000),
 			TaskModel: tqwp.TaskModel{},
 		}
-		taskQ.Enqueue(&t)
+		wp.EnqueueTask(&t)
 	}
 
-	wp := tqwp.NewWorkerPool(taskQ, numTasks, numOfWorkers, maxRetries)
-	defer wp.Summary()
-	defer wp.Stop()
-
-	wp.Start()
 }
