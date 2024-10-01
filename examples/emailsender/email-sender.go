@@ -74,7 +74,6 @@ func main() {
 			To:        email,
 			Subject:   "Hello!",
 			Body:      "This is a test email.",
-			TaskModel: tqwp.TaskModel{},
 		}
 		wp.EnqueueTask(&t)
 	}

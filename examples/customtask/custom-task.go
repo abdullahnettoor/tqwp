@@ -37,12 +37,10 @@ func main() {
 	wp.EnqueueTask(&CustomTask{
 		Id:        uint(111111),
 		Data:      rand.Intn(1000),
-		TaskModel: tqwp.TaskModel{},
 	})
 	wp.EnqueueTask(&CustomTask{
 		Id:        uint(123124),
 		Data:      rand.Intn(1000),
-		TaskModel: tqwp.TaskModel{},
 	})
 
 	wp.Start()
@@ -51,7 +49,6 @@ func main() {
 		t := CustomTask{
 			Id:        uint(i),
 			Data:      rand.Intn(1000),
-			TaskModel: tqwp.TaskModel{},
 		}
 		wp.EnqueueTask(&t)
 	}
