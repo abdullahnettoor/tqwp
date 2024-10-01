@@ -7,32 +7,33 @@ import (
 	"time"
 )
 
-type WorkerPool struct {
-	numOfWorkers   int
-	queue          *TaskQueue
-	wg             *sync.WaitGroup
-	taskWg         *sync.WaitGroup
-	maxRetries     int
-	processedTasks int32
-	TaskSuccess    int32
-	TaskFailure    int32
-	startTime      time.Time
+type workerPool struct {
+	ProcessedTasks uint32
+	TaskSuccess    uint32
+	TaskFailure    uint32
 	CompletedIn    time.Duration
+
+	numOfWorkers uint
+	queue        *TaskQueue
+	wg           *sync.WaitGroup
+	taskWg       *sync.WaitGroup
+	maxRetries   uint
+	startTime    time.Time
 }
 
 type WorkerPoolConfig struct {
-	NumOfWorkers int
-	MaxRetries   int
+	NumOfWorkers uint
+	MaxRetries   uint
 }
 
 var logger = newCustomLogger()
 
-func New(cfg *WorkerPoolConfig) *WorkerPool {
+func New(cfg *WorkerPoolConfig) *workerPool {
 	var wg, taskWg sync.WaitGroup
 
 	taskQ := NewTaskQueue(cfg.NumOfWorkers)
 
-	return &WorkerPool{
+	return &workerPool{
 		queue:        taskQ,
 		numOfWorkers: cfg.NumOfWorkers,
 		wg:           &wg,
@@ -41,32 +42,32 @@ func New(cfg *WorkerPoolConfig) *WorkerPool {
 	}
 }
 
-func (wp *WorkerPool) EnqueueTask(task Task) {
+func (wp *workerPool) EnqueueTask(task Task) {
 	wp.queue.Enqueue(task)
 	wp.taskWg.Add(1)
 }
 
-func (wp *WorkerPool) Start() {
+func (wp *workerPool) Start() {
 
 	wp.startTime = time.Now()
-	for i := 1; i <= wp.numOfWorkers; i++ {
+	for i := 1; i <= int(wp.numOfWorkers); i++ {
 		wp.wg.Add(1)
 		go wp.worker(i)
 	}
 }
 
-func (wp *WorkerPool) Stop() {
+func (wp *workerPool) Stop() {
 	wp.taskWg.Wait()
 	close(wp.queue.Tasks)
 	wp.wg.Wait()
 	wp.CompletedIn = time.Since(wp.startTime)
 }
 
-func (wp *WorkerPool) Summary() {
+func (wp *workerPool) Summary() {
 
 	fmt.Println("-------------------------------------------------------------------------------")
 	msg := fmt.Sprintf("\n- Processed %d Tasks \n- Worker Count %d\n- %d Success \n- %d Failed \n- Completed in %v",
-		wp.processedTasks,
+		wp.ProcessedTasks,
 		wp.numOfWorkers,
 		wp.TaskSuccess,
 		wp.TaskFailure,
@@ -75,7 +76,7 @@ func (wp *WorkerPool) Summary() {
 	logger.CustomTag("[SUMMARY] ", msg)
 }
 
-func (wp *WorkerPool) worker(id int) {
+func (wp *workerPool) worker(id int) {
 
 	defer wp.wg.Done()
 
@@ -85,14 +86,14 @@ func (wp *WorkerPool) worker(id int) {
 	}
 }
 
-func (wp *WorkerPool) handleTask(id int, task Task) {
+func (wp *workerPool) handleTask(id int, task Task) {
 	defer wp.taskWg.Done()
 
 	for {
 		err := task.Process()
 		if err == nil {
-			atomic.AddInt32(&wp.TaskSuccess, 1)
-			atomic.AddInt32(&wp.processedTasks, 1)
+			atomic.AddUint32(&wp.TaskSuccess, 1)
+			atomic.AddUint32(&wp.ProcessedTasks, 1)
 			// msg := fmt.Sprintf(
 			// 	"Worker %d successfully processed task %d",
 			// 	id,
@@ -117,8 +118,8 @@ func (wp *WorkerPool) handleTask(id int, task Task) {
 				return
 			}
 
-			atomic.AddInt32(&wp.TaskFailure, 1)
-			atomic.AddInt32(&wp.processedTasks, 1)
+			atomic.AddUint32(&wp.TaskFailure, 1)
+			atomic.AddUint32(&wp.ProcessedTasks, 1)
 
 			msg := fmt.Sprintf(
 				"Worker %d gave up after %d retries: %s",
@@ -130,8 +131,8 @@ func (wp *WorkerPool) handleTask(id int, task Task) {
 			return
 		}
 
-		atomic.AddInt32(&wp.processedTasks, 1)
-		atomic.AddInt32(&wp.TaskFailure, 1)
+		atomic.AddUint32(&wp.ProcessedTasks, 1)
+		atomic.AddUint32(&wp.TaskFailure, 1)
 		msg := fmt.Sprintf(
 			"Worker %d Failed to parse task: %v",
 			id,

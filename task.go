@@ -15,21 +15,21 @@ type retryableTask interface {
 	Task
 
 	// Retry attempts to retry the task, returning true if retries are still allowed.
-	retry(maxRetries int) bool
+	retry(maxRetries uint) bool
 
 	// GetRetry returns the current retry count for the task.
-	getRetry() int
+	getRetry() uint
 }
 
 // TaskModel is a base struct that users can embed in their custom tasks
 // to manage retry logic by keeping track of retry attempts.
 type TaskModel struct {
-	retries int
+	retries uint
 }
 
 // Retry increments the retry count and returns true if the task
 // can still be retried (i.e., the retry count is below maxRetries).
-func (tm *TaskModel) retry(maxRetries int) bool {
+func (tm *TaskModel) retry(maxRetries uint) bool {
 	if tm.retries < maxRetries {
 		tm.retries++
 		return true
@@ -38,6 +38,6 @@ func (tm *TaskModel) retry(maxRetries int) bool {
 }
 
 // GetRetry returns the number of retries that have been attempted for the task.
-func (tm *TaskModel) getRetry() int {
+func (tm *TaskModel) getRetry() uint {
 	return tm.retries
 }
