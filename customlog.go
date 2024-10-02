@@ -23,7 +23,7 @@ func (l *customLogger) CustomTag(tag, message string) {
 	l.log(message)
 }
 
-func (l *customLogger) Info(level, message string) {
+func (l *customLogger) Info(message string) {
 	l.level = "[INFO] "
 	l.log(message)
 }

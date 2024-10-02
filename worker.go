@@ -49,6 +49,7 @@ func (wp *workerPool) EnqueueTask(task Task) {
 
 func (wp *workerPool) Start() {
 
+	logger.Info("Started WorkerPool")
 	wp.startTime = time.Now()
 	for i := 1; i <= int(wp.numOfWorkers); i++ {
 		wp.wg.Add(1)
