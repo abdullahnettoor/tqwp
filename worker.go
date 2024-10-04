@@ -7,32 +7,50 @@ import (
 	"time"
 )
 
-type WorkerPool struct {
-	numOfWorkers   int
-	queue          *TaskQueue
-	wg             *sync.WaitGroup
-	taskWg         *sync.WaitGroup
-	maxRetries     int
-	processedTasks int32
-	TaskSuccess    int32
-	TaskFailure    int32
-	startTime      time.Time
-	CompletedIn    time.Duration
+// workerPool manages the task processing by multiple workers.
+// It tracks task success, failure, and processing time.
+type workerPool struct {
+
+	// ProcessedTasks holds the count of tasks processed by workers.
+	ProcessedTasks uint32
+
+	// TaskSuccess holds the count of successfully completed tasks.
+	TaskSuccess uint32
+
+	// TaskFailure holds the count of tasks that failed even after retries.
+	TaskFailure uint32
+
+	// CompletedIn tracks the time taken for processing tasks.
+	// It is available only after the Stop function is called.
+	CompletedIn time.Duration
+
+	numOfWorkers uint
+	queue        *TaskQueue
+	wg           *sync.WaitGroup
+	taskWg       *sync.WaitGroup
+	maxRetries   uint
+	startTime    time.Time
 }
 
+// WorkerPoolConfig holds configuration parameters for workerPool.
 type WorkerPoolConfig struct {
-	NumOfWorkers int
-	MaxRetries   int
+	// NumOfWorkers specifies the number of workers in the pool.
+	NumOfWorkers uint
+
+	// MaxRetries specifies the maximum retry attempts for failed tasks.
+	MaxRetries uint
 }
 
 var logger = newCustomLogger()
 
-func New(cfg *WorkerPoolConfig) *WorkerPool {
+// New initializes and returns a new workerPool instance with the given configuration.
+// It sets up the task queue and worker count based on the config.
+func New(cfg *WorkerPoolConfig) *workerPool {
 	var wg, taskWg sync.WaitGroup
 
 	taskQ := NewTaskQueue(cfg.NumOfWorkers)
 
-	return &WorkerPool{
+	return &workerPool{
 		queue:        taskQ,
 		numOfWorkers: cfg.NumOfWorkers,
 		wg:           &wg,
@@ -41,32 +59,39 @@ func New(cfg *WorkerPoolConfig) *WorkerPool {
 	}
 }
 
-func (wp *WorkerPool) EnqueueTask(task Task) {
+// EnqueueTask adds a task to the queue for processing and increments the task wait group counter.
+func (wp *workerPool) EnqueueTask(task Task) {
 	wp.queue.Enqueue(task)
 	wp.taskWg.Add(1)
 }
 
-func (wp *WorkerPool) Start() {
-
+// Start begins the task processing by creating worker goroutines.
+// It also records the start time for tracking the task completion duration.
+func (wp *workerPool) Start() {
+	logger.Info("Started WorkerPool")
 	wp.startTime = time.Now()
-	for i := 1; i <= wp.numOfWorkers; i++ {
+	for i := 1; i <= int(wp.numOfWorkers); i++ {
 		wp.wg.Add(1)
 		go wp.worker(i)
 	}
 }
 
-func (wp *WorkerPool) Stop() {
+// Stop gracefully stops the workerPool by waiting for all tasks to complete.
+// It closes the task queue and calculates the total time taken for processing.
+func (wp *workerPool) Stop() {
 	wp.taskWg.Wait()
 	close(wp.queue.Tasks)
 	wp.wg.Wait()
 	wp.CompletedIn = time.Since(wp.startTime)
 }
 
-func (wp *WorkerPool) Summary() {
-
+// Summary logs the statistics of the worker pool execution, including
+// the number of processed tasks, successes, failures, and total time taken.
+func (wp *workerPool) Summary() {
 	fmt.Println("-------------------------------------------------------------------------------")
-	msg := fmt.Sprintf("\n- Processed %d Tasks \n- Worker Count %d\n- %d Success \n- %d Failed \n- Completed in %v",
-		wp.processedTasks,
+	msg := fmt.Sprintf(
+		"\n- Processed %d Tasks \n- Worker Count %d\n- %d Success \n- %d Failed \n- Completed in %v",
+		wp.ProcessedTasks,
 		wp.numOfWorkers,
 		wp.TaskSuccess,
 		wp.TaskFailure,
@@ -75,38 +100,35 @@ func (wp *WorkerPool) Summary() {
 	logger.CustomTag("[SUMMARY] ", msg)
 }
 
-func (wp *WorkerPool) worker(id int) {
-
+// worker is the main loop for each worker that pulls tasks from the queue
+// and processes them.
+func (wp *workerPool) worker(id int) {
 	defer wp.wg.Done()
 
 	for task := range wp.queue.Tasks {
-
 		go wp.handleTask(id, task)
 	}
 }
 
-func (wp *WorkerPool) handleTask(id int, task Task) {
+// handleTask processes a single task, handling retries if the task implements
+// the retryableTask interface. It logs success, retries, or final failure after
+// exhausting retry attempts.
+func (wp *workerPool) handleTask(id int, task Task) {
 	defer wp.taskWg.Done()
 
 	for {
 		err := task.Process()
 		if err == nil {
-			atomic.AddInt32(&wp.TaskSuccess, 1)
-			atomic.AddInt32(&wp.processedTasks, 1)
-			// msg := fmt.Sprintf(
-			// 	"Worker %d successfully processed task %d",
-			// 	id,
-			// 	task,
-			// )
-			// logger.Success(msg)
+			atomic.AddUint32(&wp.TaskSuccess, 1)
+			atomic.AddUint32(&wp.ProcessedTasks, 1)
 			return
 		}
 
 		if tm, ok := task.(retryableTask); ok {
-
 			if tm.retry(wp.maxRetries) {
 				wp.queue.Enqueue(task)
 				wp.taskWg.Add(1)
+
 				msg := fmt.Sprintf(
 					"Worker %d failed: %s (attempt %d)",
 					id,
@@ -117,8 +139,8 @@ func (wp *WorkerPool) handleTask(id int, task Task) {
 				return
 			}
 
-			atomic.AddInt32(&wp.TaskFailure, 1)
-			atomic.AddInt32(&wp.processedTasks, 1)
+			atomic.AddUint32(&wp.TaskFailure, 1)
+			atomic.AddUint32(&wp.ProcessedTasks, 1)
 
 			msg := fmt.Sprintf(
 				"Worker %d gave up after %d retries: %s",
@@ -130,8 +152,8 @@ func (wp *WorkerPool) handleTask(id int, task Task) {
 			return
 		}
 
-		atomic.AddInt32(&wp.processedTasks, 1)
-		atomic.AddInt32(&wp.TaskFailure, 1)
+		atomic.AddUint32(&wp.ProcessedTasks, 1)
+		atomic.AddUint32(&wp.TaskFailure, 1)
 		msg := fmt.Sprintf(
 			"Worker %d Failed to parse task: %v",
 			id,

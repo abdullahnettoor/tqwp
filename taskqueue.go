@@ -9,7 +9,7 @@ type TaskQueue struct {
 	mu    sync.Mutex
 }
 
-func NewTaskQueue(size int) *TaskQueue {
+func NewTaskQueue(size uint) *TaskQueue {
 	return &TaskQueue{
 		Tasks: make(chan Task, size),
 	}
