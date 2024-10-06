@@ -7,9 +7,9 @@ import (
 	"time"
 )
 
-// workerPool manages the task processing by multiple workers.
+// WorkerPool manages the task processing by multiple workers.
 // It tracks task success, failure, and processing time.
-type workerPool struct {
+type WorkerPool struct {
 
 	// ProcessedTasks holds the count of tasks processed by workers.
 	ProcessedTasks uint32
@@ -32,7 +32,7 @@ type workerPool struct {
 	startTime    time.Time
 }
 
-// WorkerPoolConfig holds configuration parameters for workerPool.
+// WorkerPoolConfig holds configuration parameters for WorkerPool.
 type WorkerPoolConfig struct {
 	// NumOfWorkers specifies the number of workers in the pool.
 	NumOfWorkers uint
@@ -43,14 +43,14 @@ type WorkerPoolConfig struct {
 
 var logger = newCustomLogger()
 
-// New initializes and returns a new workerPool instance with the given configuration.
+// New initializes and returns a new WorkerPool instance with the given configuration.
 // It sets up the task queue and worker count based on the config.
-func New(cfg *WorkerPoolConfig) *workerPool {
+func New(cfg *WorkerPoolConfig) *WorkerPool {
 	var wg, taskWg sync.WaitGroup
 
 	taskQ := NewTaskQueue(cfg.NumOfWorkers)
 
-	return &workerPool{
+	return &WorkerPool{
 		queue:        taskQ,
 		numOfWorkers: cfg.NumOfWorkers,
 		wg:           &wg,
@@ -60,14 +60,14 @@ func New(cfg *WorkerPoolConfig) *workerPool {
 }
 
 // EnqueueTask adds a task to the queue for processing and increments the task wait group counter.
-func (wp *workerPool) EnqueueTask(task Task) {
+func (wp *WorkerPool) EnqueueTask(task Task) {
 	wp.queue.Enqueue(task)
 	wp.taskWg.Add(1)
 }
 
 // Start begins the task processing by creating worker goroutines.
 // It also records the start time for tracking the task completion duration.
-func (wp *workerPool) Start() {
+func (wp *WorkerPool) Start() {
 	logger.Info("Started WorkerPool")
 	wp.startTime = time.Now()
 	for i := 1; i <= int(wp.numOfWorkers); i++ {
@@ -76,9 +76,9 @@ func (wp *workerPool) Start() {
 	}
 }
 
-// Stop gracefully stops the workerPool by waiting for all tasks to complete.
+// Stop gracefully stops the WorkerPool by waiting for all tasks to complete.
 // It closes the task queue and calculates the total time taken for processing.
-func (wp *workerPool) Stop() {
+func (wp *WorkerPool) Stop() {
 	wp.taskWg.Wait()
 	close(wp.queue.Tasks)
 	wp.wg.Wait()
@@ -87,7 +87,7 @@ func (wp *workerPool) Stop() {
 
 // Summary logs the statistics of the worker pool execution, including
 // the number of processed tasks, successes, failures, and total time taken.
-func (wp *workerPool) Summary() {
+func (wp *WorkerPool) Summary() {
 	fmt.Println("-------------------------------------------------------------------------------")
 	msg := fmt.Sprintf(
 		"\n- Processed %d Tasks \n- Worker Count %d\n- %d Success \n- %d Failed \n- Completed in %v",
@@ -102,7 +102,7 @@ func (wp *workerPool) Summary() {
 
 // worker is the main loop for each worker that pulls tasks from the queue
 // and processes them.
-func (wp *workerPool) worker(id int) {
+func (wp *WorkerPool) worker(id int) {
 	defer wp.wg.Done()
 
 	for task := range wp.queue.Tasks {
@@ -113,7 +113,7 @@ func (wp *workerPool) worker(id int) {
 // handleTask processes a single task, handling retries if the task implements
 // the retryableTask interface. It logs success, retries, or final failure after
 // exhausting retry attempts.
-func (wp *workerPool) handleTask(id int, task Task) {
+func (wp *WorkerPool) handleTask(id int, task Task) {
 	defer wp.taskWg.Done()
 
 	for {
