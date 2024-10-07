@@ -41,6 +41,15 @@ type WorkerPoolConfig struct {
 	MaxRetries uint
 }
 
+// DefaultWorkerPoolConfig will give a default configuration of WorkerPool
+// with 10 workers and 3 maximum retries
+func DefaultWorkerPoolConfig() *WorkerPoolConfig {
+	return &WorkerPoolConfig{
+		NumOfWorkers: 10,
+		MaxRetries: 3,
+	}
+}
+
 var logger = newCustomLogger()
 
 // New initializes and returns a new WorkerPool instance with the given configuration.
