@@ -166,7 +166,6 @@ This project is licensed under the Apache License 2.0 - see the [LICENSE](LICENS
 <br/>
 
 ## TODO
-- Implement default configuration for worker pool
 - Add interval between retries.
 - Add godocs in necessary files.
 
