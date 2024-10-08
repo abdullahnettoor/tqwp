@@ -3,6 +3,7 @@ package main
 import (
 	"fmt"
 	"math/rand"
+	"runtime"
 	"time"
 
 	"github.com/abdullahnettoor/tqwp"
@@ -43,12 +44,12 @@ func main() {
 
 	// Enqueueing tasks before starting the worker pool.
 	wp.EnqueueTask(&CustomTask{
-		Id:        uint(111111),
-		Data:      rand.Intn(1000),
+		Id:   uint(111111),
+		Data: rand.Intn(1000),
 	})
 	wp.EnqueueTask(&CustomTask{
-		Id:        uint(123124),
-		Data:      rand.Intn(1000),
+		Id:   uint(123124),
+		Data: rand.Intn(1000),
 	})
 
 	// Start the worker pool to process tasks.
@@ -57,10 +58,12 @@ func main() {
 	// Populate the task queue with multiple tasks for processing.
 	for i := 1; i <= 1000; i++ {
 		t := CustomTask{
-			Id:        uint(i),
-			Data:      rand.Intn(1000),
+			Id:   uint(i),
+			Data: rand.Intn(1000),
 		}
 		wp.EnqueueTask(&t)
+
+		fmt.Println("GOR:", runtime.NumGoroutine())
 	}
 
 }
