@@ -115,7 +115,7 @@ func (wp *WorkerPool) worker(id int) {
 	defer wp.wg.Done()
 
 	for task := range wp.queue.Tasks {
-		go wp.handleTask(id, task)
+		wp.handleTask(id, task)
 	}
 }
 
