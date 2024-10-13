@@ -63,17 +63,18 @@ func main() {
 	// Create and start the worker pool.
 	wp := tqwp.New(&tqwp.WorkerPoolConfig{
 		NumOfWorkers: numOfWorkers,
-		MaxRetries:   maxRetries})
+		MaxRetries:   maxRetries},
+	)
 	defer wp.Summary()
 	defer wp.Stop()
 
 	wp.Start()
 	for i, email := range emailList {
 		t := EmailTask{
-			Id:        uint(i + 1),
-			To:        email,
-			Subject:   "Hello!",
-			Body:      "This is a test email.",
+			Id:      uint(i + 1),
+			To:      email,
+			Subject: "Hello!",
+			Body:    "This is a test email.",
 		}
 		wp.EnqueueTask(&t)
 	}

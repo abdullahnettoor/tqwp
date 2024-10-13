@@ -3,7 +3,6 @@ package main
 import (
 	"fmt"
 	"math/rand"
-	"runtime"
 	"time"
 
 	"github.com/abdullahnettoor/tqwp"
@@ -30,7 +29,7 @@ func (t *CustomTask) Process() error {
 		return fmt.Errorf("division by zero")
 	}
 	t.Data = num / divisor
-	time.Sleep(time.Millisecond * 10) // Simulating some processing time
+	time.Sleep(time.Millisecond * 50) // Simulating some processing time
 	return nil
 }
 
@@ -42,7 +41,19 @@ func main() {
 	defer wp.Summary()
 	defer wp.Stop()
 
-	// Enqueueing tasks before starting the worker pool.
+	// Start the worker pool to process tasks.
+	wp.Start()
+
+	// Populate the task queue with multiple tasks for processing.
+	for i := 1; i <= 10000; i++ {
+		t := CustomTask{
+			Id:   uint(i),
+			Data: rand.Intn(1000),
+		}
+		wp.EnqueueTask(&t)
+
+	}
+
 	wp.EnqueueTask(&CustomTask{
 		Id:   uint(111111),
 		Data: rand.Intn(1000),
@@ -51,19 +62,5 @@ func main() {
 		Id:   uint(123124),
 		Data: rand.Intn(1000),
 	})
-
-	// Start the worker pool to process tasks.
-	wp.Start()
-
-	// Populate the task queue with multiple tasks for processing.
-	for i := 1; i <= 1000; i++ {
-		t := CustomTask{
-			Id:   uint(i),
-			Data: rand.Intn(1000),
-		}
-		wp.EnqueueTask(&t)
-
-		fmt.Println("GOR:", runtime.NumGoroutine())
-	}
 
 }
