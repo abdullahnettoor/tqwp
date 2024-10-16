@@ -49,8 +49,8 @@ type WorkerPoolConfig struct {
 func DefaultWorkerPoolConfig() *WorkerPoolConfig {
 	return &WorkerPoolConfig{
 		NumOfWorkers: 10,
-		MaxRetries: 3,
-		QueueSize: 300,
+		MaxRetries:   3,
+		QueueSize:    300,
 	}
 }
 
@@ -61,7 +61,7 @@ var logger = newCustomLogger()
 func New(cfg *WorkerPoolConfig) *WorkerPool {
 	var wg, taskWg sync.WaitGroup
 
-	taskQ := NewTaskQueue(cfg.NumOfWorkers)
+	taskQ := NewTaskQueue(cfg.QueueSize)
 
 	return &WorkerPool{
 		queue:        taskQ,
