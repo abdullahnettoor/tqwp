@@ -29,7 +29,7 @@ func (t *CustomTask) Process() error {
 		return fmt.Errorf("division by zero")
 	}
 	t.Data = num / divisor
-	time.Sleep(time.Millisecond * 50) // Simulating some processing time
+	time.Sleep(time.Millisecond * 10) // Simulating some processing time
 	return nil
 }
 
@@ -37,7 +37,7 @@ func main() {
 
 	// Creating a new instance of workerPool with the provided configuration.
 	// This worker pool is set to use 10 workers and retry tasks up to 3 times.
-	wp := tqwp.New(&tqwp.WorkerPoolConfig{MaxRetries: 3, NumOfWorkers: 10})
+	wp := tqwp.New(&tqwp.WorkerPoolConfig{MaxRetries: 3, NumOfWorkers: 10, QueueSize: 10000})
 	defer wp.Summary()
 	defer wp.Stop()
 
