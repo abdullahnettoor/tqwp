@@ -116,6 +116,7 @@ func main() {
 	wp := tqwp.New(&tqwp.WorkerPoolConfig{
 		NumOfWorkers: numOfWorkers,
 		MaxRetries:   maxRetries,
+		QueueSize:    10,
 	})
 	defer wp.Summary()
 	defer wp.Stop()

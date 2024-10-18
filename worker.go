@@ -39,6 +39,9 @@ type WorkerPoolConfig struct {
 
 	// MaxRetries specifies the maximum retry attempts for failed tasks.
 	MaxRetries uint
+
+	// QueueSize specifies the size of task can be hold by TaskQueue
+	QueueSize uint
 }
 
 // DefaultWorkerPoolConfig will give a default configuration of WorkerPool
@@ -46,7 +49,8 @@ type WorkerPoolConfig struct {
 func DefaultWorkerPoolConfig() *WorkerPoolConfig {
 	return &WorkerPoolConfig{
 		NumOfWorkers: 10,
-		MaxRetries: 3,
+		MaxRetries:   3,
+		QueueSize:    300,
 	}
 }
 
@@ -57,7 +61,7 @@ var logger = newCustomLogger()
 func New(cfg *WorkerPoolConfig) *WorkerPool {
 	var wg, taskWg sync.WaitGroup
 
-	taskQ := NewTaskQueue(cfg.NumOfWorkers)
+	taskQ := NewTaskQueue(cfg.QueueSize)
 
 	return &WorkerPool{
 		queue:        taskQ,
