@@ -82,23 +82,24 @@ func main() {
 	cfg := tqwp.WorkerPoolConfig{
 		MaxRetries:   3,
 		NumOfWorkers: 10,
+		QueueSize: 1000,
 	}
 
 	// Set up the worker pool and start processing tasks.
-    wp := tqwp.New(&cfg)
+  wp := tqwp.New(&cfg)
 	defer wp.Summary()
 	defer wp.Stop()
 
 	// Add Tasks to Queue before starting. 
-    // Not Recommended.
+  // Not Recommended.
 	wp.EnqueueTask(&CustomTask{
-        Id:        uint(111111),
+    Id:        uint(111111),
 		Data:      rand.Intn(1000),
 		TaskModel: tqwp.TaskModel{},
 	})
 
 	wp.EnqueueTask(&CustomTask{
-        Id:        uint(123124),
+    Id:        uint(123124),
 		Data:      rand.Intn(1000),
 		TaskModel: tqwp.TaskModel{},
 	})
