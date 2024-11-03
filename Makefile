@@ -6,3 +6,6 @@ run-eg2:
 
 run-eg3:
 	@go run examples/imgdownloader/img-downloader.go
+
+run-eg4:
+	@go run examples/jsonprocessor/json-processor.go
